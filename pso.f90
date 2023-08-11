@@ -2,7 +2,7 @@ program pso
   implicit none
 
   integer, parameter :: DIMENSIONS=3*3
-  integer, parameter :: NINDIVIDUALS=1
+  integer, parameter :: NINDIVIDUALS=4
 
   type individual
      real :: X(DIMENSIONS)      ! The coordinates.
@@ -14,7 +14,7 @@ program pso
 
   type(individual) :: inds(NINDIVIDUALS)
 
-  integer :: i, ngen
+  integer :: i, ngen, gbest
   real :: score
 
   inds = fresh_individuals()
@@ -23,13 +23,14 @@ program pso
   ! It would be nice to do each of these individuals in parallel, and
   ! terminate them one by one.
   do
-     if(ngen==1000) donep=.true.
+     if(ngen==10) exit
 
      do i=1,NINDIVIDUALS
         ! In first iteration, the second term will be zero since they
         ! are both set to the same value.
+        gbest = inds(i)%g_best
         inds(i)%V = inds(i)%V + rand_vec()*(inds(i)%X_best - inds(i)%X) &
-                  + rand_vec()*(inds(inds(i)%g_best) - inds(i)%X)
+                              + rand_vec()*(inds(gbest)%X_best - inds(i)%X)
         inds(i)%X = inds(i)%X + inds(i)%V
 
         score = score_gen(inds(i)%X)
@@ -41,6 +42,7 @@ program pso
      end do
 
      call update_g_best(inds)
+     ngen = ngen + 1
   end do
 
 contains
