@@ -1,8 +1,11 @@
 program pso
   implicit none
 
-  integer, parameter :: DIMENSIONS=3*3
+  integer, parameter :: DIMENSIONS=3*10
   integer, parameter :: NINDIVIDUALS=4
+  real, parameter :: CLENGTH=8.0
+  real, parameter :: CCUTOFF=1.6
+  real, parameter :: CCUTOFFSQ=CCUTOFF**2
 
   type individual
      real :: X(DIMENSIONS)      ! The coordinates.
@@ -29,8 +32,8 @@ program pso
         ! In first iteration, the second term will be zero since they
         ! are both set to the same value.
         gbest = inds(i)%g_best
-        inds(i)%V = inds(i)%V + rand_vec()*(inds(i)%X_best - inds(i)%X) &
-                              + rand_vec()*(inds(gbest)%X_best - inds(i)%X)
+        inds(i)%V = inds(i)%V + rand_vec(0.0, 1.0)*(inds(i)%X_best - inds(i)%X) &
+                              + rand_vec(0.0, 1.0)*(inds(gbest)%X_best - inds(i)%X)
         inds(i)%X = inds(i)%X + inds(i)%V
 
         score = score_gen(inds(i)%X)
@@ -83,22 +86,125 @@ contains
     end do
   end subroutine update_g_best
 
+  ! Return a random number in the range [MIN, MAX).
+  function rand_range(min, max) result(r)
+    implicit none
+    real, intent(in) :: min, max
+    real :: r
+
+    call random_seed()
+    call random_number(r)
+
+    r = (max-min) * r + min
+  end function rand_range
+
+  ! Return a vector of random numbers of dimension DIMENSIONS.
+  ! The range of random numbers is [MIN, MAX).
+  function rand_vec(min, max) result(vec)
+    implicit none
+    real, intent(in) :: min, max
+    real :: vec(DIMENSIONS)
+    integer :: i
+
+    do i=1,DIMENSIONS
+       vec(i) = rand_range(min, max)
+    end do
+  end function rand_vec
+
+  ! Return a vector of three random numbers in range [MIN,MAX).
+  function rand_vec3(min, max) result(vec)
+    implicit none
+    real, intent(in) :: min, max
+    real :: vec(3)
+    integer :: i
+
+    do i=1,3
+       vec(i) = rand_range(min,max)
+    end do
+  end function rand_vec3
+
+  ! Return the Nth atom's coordinate in X.
+  function ncoords(n, X) result(coords)
+    implicit none
+    real, intent(in) :: X(DIMENSIONS)
+    integer, intent(in) :: n
+    real :: coords(3)
+
+    coords = X((i-1)*3+1:i*3)
+  end function ncoords
+
+  ! Return .true. if Ith atom does not collide with (I-1) atoms in X.
+  function check_conflict(i, X) result(conflictp)
+    implicit none
+    integer, intent(in) :: i
+    real, intent(in) :: X(DIMENSIONS)
+    logical :: conflictp
+    real :: icoords(3), ocoords(3), diff(3)
+    integer :: j
+
+    conflictp = .false.
+
+    icoords = ncoords(i, X)
+
+    do j=1,i-1
+       if(conflictp) exit
+       ocoords = ncoords(j, X)
+       diff = ocoords - icoords
+       if(dot_product(diff, diff) > CCUTOFFSQ) conflictp = .true.
+    end do
+  end function check_conflict
+
+  function new_X() result(nX)
+    implicit none
+    real :: nX(DIMENSIONS)
+    integer :: natom, l, u
+    logical :: conflictp
+    real :: icoords(3)
+
+    nX = 0.0
+    natom = DIMENSIONS / 3
+
+    do i=1,natom
+       conflictp = .false.
+       l = (i-1)*3
+       u = i*3
+
+       icoords = rand_vec3(-CLENGTH/2, CLENGTH/2)
+       nX(l:u) = icoords
+       conflictp = check_conflict(i, nX)
+
+       if(conflictp) then
+          do
+             if(.not. conflictp) exit
+
+             icoords = icoords + 0.003*icoords
+             if(any(icoords > CLENGTH/2) .or. &
+                  any(icoords < -CLENGTH/2)) &
+                  icoords = rand_vec3(-CLENGTH/2, CLENGTH/2)
+
+             nX(l:u) = icoords
+
+             conflictp = check_conflict(i, nX)
+          end do
+       end if
+    end do
+
+  end function new_X
+
   ! Return a batch of fresh individuals for further use.
-  ! TODO: Random X must make sense!
   function fresh_individuals() result(inds)
     implicit none
     type(individual) :: inds(NINDIVIDUALS)
     integer :: i
-    real :: randv(DIMENSIONS), randx(DIMENSIONS)
+    real :: randv(DIMENSIONS)
 
     do i=1,NINDIVIDUALS
-       randv = rand_vec()
-       randx = rand_vec()
+       randv = rand_vec(0.0, 1.0)
 
-       inds(i)%X = randx
+       inds(i)%X = new_X()
        inds(i)%V = randv
-       inds(i)%p_best = score_gen(randx)
-       inds(i)%X_best = randx
+       inds(i)%p_best = score_gen(inds(i)%X)
+       inds(i)%X_best = inds(i)%X
     end do
 
     call update_g_best(inds)
@@ -113,16 +219,4 @@ contains
 
     score = rand(1)
   end function score_gen
-
-  ! Return a vector of random numbers of dimension DIMENSIONS.
-  ! TODO: Range my friend!
-  function rand_vec() result(vec)
-    implicit none
-    real :: vec(DIMENSIONS)
-    integer :: i
-
-    do i=1,DIMENSIONS
-       vec(i) = rand(1)
-    end do
-  end function rand_vec
 end program pso
