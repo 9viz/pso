@@ -6,6 +6,7 @@ program pso
   real, parameter :: CLENGTH=8.0
   real, parameter :: CCUTOFF=1.6
   real, parameter :: CCUTOFFSQ=CCUTOFF**2
+  character(len=3) :: LOGFILE="OUT"
 
   type individual
      real :: X(DIMENSIONS)      ! The coordinates.
@@ -17,10 +18,12 @@ program pso
 
   type(individual) :: inds(NINDIVIDUALS)
 
-  integer :: i, ngen, gbest
+  integer :: i, ngen, gbest, log_unit
   real :: score
 
+  open(newunit=log_unit, file=LOGFILE)
   inds = fresh_individuals()
+  call log_inds(inds, log_unit, 0)
 
   ngen = 1
   ! It would be nice to do each of these individuals in parallel, and
@@ -47,8 +50,11 @@ program pso
      !$OMP end parallel do
 
      call update_g_best(inds)
+     call log_inds(inds, log_unit, ngen)
      ngen = ngen + 1
   end do
+
+  close(log_unit)
 
 contains
   ! Return the new g_best value for I-th individual among INDS.
@@ -262,4 +268,28 @@ contains
 
     score = rand(1)
   end function score_gen
+
+  ! Log the individuals INDS' status to file with unit UNIT.
+  ! NGEN is the current generation no.
+  subroutine log_inds(inds, unit, ngen)
+    implicit none
+    type(individual), intent(in) :: inds(NINDIVIDUALS)
+    integer, intent(in) :: unit, ngen
+    integer :: i
+
+    write(unit, "(A,I0,A)") "**** GENERATION ", ngen, " ****"
+    do i=1,NINDIVIDUALS
+       write(unit, "(A,I0,A)") "**** INDIVIDUAL ", i, " ****"
+
+       write(unit, *) "p_best=", inds(i)%p_best
+       write(unit, *) "X_best=", inds(i)%X_best
+       write(unit, *) "X=", inds(i)%X
+       write(unit, *) "V=", inds(i)%V
+       write(unit, *) "g_best=", inds(i)%g_best
+
+       write(unit, "(A)") "**** END INDIVIDUAL ****"
+    end do
+
+    write(unit, "(A)") "**** END GENERATION *****"
+  end subroutine log_inds
 end program pso
