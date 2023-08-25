@@ -220,7 +220,7 @@ contains
   end function fresh_individuals
 
   ! Write the g16 input file for coord vec X to FILENAME.
-  subroutine prep_g16_input(X, filename)
+  subroutine write_g16_input(X, filename)
     implicit none
     real, intent(in) :: X(DIMENSIONS)
     character(len=*), intent(in) :: filename
@@ -249,7 +249,7 @@ contains
     write(unit, "(A)") "", ""
 
     close(unit)
-  end subroutine prep_g16_input
+  end subroutine write_g16_input
 
   ! Return the score for the coordinates X.
   ! NIND is the index of the individual, NGEN is the index of the
@@ -264,7 +264,7 @@ contains
 
     filename = ""
     write(filename, "(i0,a,i0,a)") nind, "_", ngen, ".com"
-    call prep_g16_input(X, trim(filename))
+    call write_g16_input(X, trim(filename))
 
     score = rand(1)
   end function score_gen
