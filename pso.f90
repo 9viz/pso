@@ -31,7 +31,7 @@ program pso
   do
      if(ngen==10) exit
 
-     !$OMP parallel do
+     !$OMP do
      do i=1,NINDIVIDUALS
         ! In first iteration, the second term will be zero since they
         ! are both set to the same value.
@@ -47,7 +47,7 @@ program pso
            inds(i)%p_best = score
         end if
      end do
-     !$OMP end parallel do
+     !$OMP end do
 
      call update_g_best(inds)
      call log_inds(inds, log_unit, ngen)
@@ -205,7 +205,7 @@ contains
     integer :: i
     real :: randv(DIMENSIONS)
 
-    !$OMP parallel do
+    !$OMP do
     do i=1,NINDIVIDUALS
        randv = rand_vec(0.0, 1.0)
 
@@ -214,7 +214,7 @@ contains
        inds(i)%p_best = score_gen(inds(i)%X, i, 0)
        inds(i)%X_best = inds(i)%X
     end do
-    !$OMP end parallel do
+    !$OMP end do
 
     call update_g_best(inds)
   end function fresh_individuals
@@ -235,6 +235,7 @@ contains
     ! *PREAMBLE*
     write(unit, "(A)") &
          "%NProcShared=4", &
+         "%Chk="//filename(:len(filename)-3)//"chk", &
          "#n UHF/6-31G(d,p) SP", &
          "", &
          filename, &
@@ -261,12 +262,26 @@ contains
     integer, intent(in) :: nind, ngen
     real :: score
     character(len=50), allocatable :: filename
+    integer :: stat, unit
 
     filename = ""
     write(filename, "(i0,a,i0,a)") nind, "_", ngen, ".com"
     call write_g16_input(X, trim(filename))
 
-    score = rand(1)
+    call execute_command_line("./calc-energy "//filename, &
+         wait=.true., exitstat=stat)
+    ! This can happen if atoms are too close.
+    if(stat==0) then
+       score = 10000000.0
+       return
+    end if
+
+    open(newunit=unit, file=filename//"_energy", status="old", iostat=stat)
+    if(stat < 0) then
+       score = 10000000.0
+    else
+       read(unit,*) score
+    end if
   end function score_gen
 
   ! Log the individuals INDS' status to file with unit UNIT.

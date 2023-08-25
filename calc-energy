@@ -1,0 +1,3 @@
+#!/bin/mksh
+
+echo $RANDOM >>$1_energy
