@@ -132,7 +132,7 @@ contains
     integer, intent(in) :: n
     real :: coords(3)
 
-    coords = X((i-1)*3+1:i*3)
+    coords = X((n-1)*3+1:n*3)
   end function ncoords
 
   ! Return .true. if Ith atom does not collide with (I-1) atoms in X.
@@ -141,7 +141,7 @@ contains
     integer, intent(in) :: i
     real, intent(in) :: X(DIMENSIONS)
     logical :: conflictp
-    real :: icoords(3), ocoords(3), diff(3)
+    real :: icoords(3), jcoords(3), diff(3)
     integer :: j
 
     conflictp = .false.
@@ -150,9 +150,9 @@ contains
 
     do j=1,i-1
        if(conflictp) exit
-       ocoords = ncoords(j, X)
-       diff = ocoords - icoords
-       if(dot_product(diff, diff) > CCUTOFFSQ) conflictp = .true.
+       jcoords = ncoords(j, X)
+       diff = jcoords - icoords
+       if(dot_product(diff, diff) < CCUTOFFSQ) conflictp = .true.
     end do
   end function check_conflict
 
