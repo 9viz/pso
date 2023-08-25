@@ -28,6 +28,7 @@ program pso
   do
      if(ngen==10) exit
 
+     !$OMP parallel do
      do i=1,NINDIVIDUALS
         ! In first iteration, the second term will be zero since they
         ! are both set to the same value.
@@ -43,6 +44,7 @@ program pso
            inds(i)%p_best = score
         end if
      end do
+     !$OMP end parallel do
 
      call update_g_best(inds)
      ngen = ngen + 1
@@ -198,6 +200,7 @@ contains
     integer :: i
     real :: randv(DIMENSIONS)
 
+    !$OMP parallel do
     do i=1,NINDIVIDUALS
        randv = rand_vec(0.0, 1.0)
 
@@ -206,6 +209,7 @@ contains
        inds(i)%p_best = score_gen(inds(i)%X)
        inds(i)%X_best = inds(i)%X
     end do
+    !$OMP end parallel do
 
     call update_g_best(inds)
   end function fresh_individuals
@@ -217,6 +221,7 @@ contains
     real, intent(in) :: X(DIMENSIONS)
     real :: score
 
+    call sleep(1)
     score = rand(1)
   end function score_gen
 end program pso
