@@ -37,7 +37,7 @@ program pso
                               + rand_vec(0.0, 1.0)*(inds(gbest)%X_best - inds(i)%X)
         inds(i)%X = inds(i)%X + inds(i)%V
 
-        score = score_gen(inds(i)%X)
+        score = score_gen(inds(i)%X, i, ngen)
 
         if(score < inds(i)%p_best) then
            inds(i)%X_best = inds(i)%X
@@ -190,7 +190,6 @@ contains
           end do
        end if
     end do
-
   end function new_X
 
   ! Return a batch of fresh individuals for further use.
@@ -206,7 +205,7 @@ contains
 
        inds(i)%X = new_X()
        inds(i)%V = randv
-       inds(i)%p_best = score_gen(inds(i)%X)
+       inds(i)%p_best = score_gen(inds(i)%X, i, 0)
        inds(i)%X_best = inds(i)%X
     end do
     !$OMP end parallel do
@@ -214,14 +213,53 @@ contains
     call update_g_best(inds)
   end function fresh_individuals
 
-  ! Return the score for the coordinates X.
-  ! TODO: Do the actual thing.
-  function score_gen(X) result(score)
+  ! Write the g16 input file for coord vec X to FILENAME.
+  subroutine prep_g16_input(X, filename)
     implicit none
     real, intent(in) :: X(DIMENSIONS)
-    real :: score
+    character(len=*), intent(in) :: filename
+    integer :: i, stat, unit
 
-    call sleep(1)
+    open(newunit=unit, file=filename, iostat=stat)
+    if(stat < 0) then
+       print *, "COULD NOT CREATE FILE", filename, " FOR G16 INPUT"
+       stop 1
+    end if
+
+    ! *PREAMBLE*
+    write(unit, "(A)") &
+         "%NProcShared=4", &
+         "#n UHF/6-31G(d,p) SP", &
+         "", &
+         filename, &
+         "", &
+         "0 1"
+
+    do i=1,DIMENSIONS/3
+       write(unit, "(A)", advance="no") "C"
+       write(unit, *) ncoords(i, X)
+    end do
+
+    write(unit, "(A)") "", ""
+
+    close(unit)
+  end subroutine prep_g16_input
+
+  ! Return the score for the coordinates X.
+  ! NIND is the index of the individual, NGEN is the index of the
+  ! generation.
+  ! TODO: Do the actual thing.
+  function score_gen(X, nind, ngen) result(score)
+    implicit none
+    real, intent(in) :: X(DIMENSIONS)
+    integer, intent(in) :: nind, ngen
+    real :: score
+    character(len=50), allocatable :: filename
+
+    filename = ""
+    write(filename, "(i0,a,i0,a)") nind, "_", ngen, ".com"
+    call prep_g16_input(X, trim(filename))
+
     score = rand(1)
   end function score_gen
 end program pso
