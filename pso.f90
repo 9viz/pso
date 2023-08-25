@@ -31,7 +31,7 @@ program pso
   do
      if(ngen==10) exit
 
-!$OMP do
+     !$OMP do
      do i=1,NINDIVIDUALS
         ! In first iteration, the second term will be zero since they
         ! are both set to the same value.
@@ -47,7 +47,7 @@ program pso
            inds(i)%p_best = score
         end if
      end do
-!$OMP end do
+     !$OMP end do
 
      call update_g_best(inds)
      call log_inds(inds, log_unit, ngen)
@@ -205,7 +205,7 @@ contains
     integer :: i
     real :: randv(DIMENSIONS)
 
-!$OMP do
+    !$OMP do
     do i=1,NINDIVIDUALS
        randv = rand_vec(0.0, 1.0)
 
@@ -214,7 +214,7 @@ contains
        inds(i)%p_best = score_gen(inds(i)%X, i, 0)
        inds(i)%X_best = inds(i)%X
     end do
-!$OMP end do
+    !$OMP end do
 
     call update_g_best(inds)
   end function fresh_individuals
