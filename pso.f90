@@ -13,7 +13,7 @@ program pso
      real :: V(DIMENSIONS)      ! The velocity.
      real :: p_best             ! The best score.
      real :: X_best(DIMENSIONS) ! The local best coordinates.
-     integer :: g_best          ! The index of global best coordinates.
+     integer :: g_best          ! The index of neighbourhood best coordinates.
   end type individual
 
   type(individual) :: inds(NINDIVIDUALS)
