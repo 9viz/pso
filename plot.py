@@ -35,6 +35,7 @@ glob = ax.scatter(data[0][8], data[0][9], c="red")
 
 def update(gen):
     ax.set_title(f"Generation {gen}")
+    # zip doesn't work for whatever reason.
     inds.set_offsets(np.stack([pts(gen,0),pts(gen,1)]).T)
     glob.set_offsets([data[gen][8], data[gen][9]])
     return ax, inds, glob
