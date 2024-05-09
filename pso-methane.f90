@@ -8,6 +8,7 @@ program pso
   real, parameter :: K_A = 0.36
   real, parameter :: A_0 = 1.919 ! rad ≡ 110°
   real, parameter :: PI=3.14159265359
+  real, parameter :: W=1.0      ! Inertia
   character(len=11), parameter :: LOGFILE="OUT.methane"
 
   ! The coordinates are the bond angle and the bond distance.
@@ -39,7 +40,7 @@ program pso
      do i=1,NINDIVIDUALS
         ! In first iteration, the second term will be zero since they
         ! are both set to the same value.
-        inds(i)%V = inds(i)%V + rand_vec(0.0, 1.0)*(inds(i)%X_best - inds(i)%X) &
+        inds(i)%V = W*inds(i)%V + rand_vec(0.0, 1.0)*(inds(i)%X_best - inds(i)%X) &
                               + rand_vec(0.0, 1.0)*(g_X_best - inds(i)%X)
         inds(i)%X = inds(i)%X + inds(i)%V
 
